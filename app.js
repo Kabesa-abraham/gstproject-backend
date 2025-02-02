@@ -4,8 +4,10 @@ import dotenv from 'dotenv';
 import http from 'http'; //nécessaire pour socket.io
 import {Server} from 'socket.io';
 import cors from 'cors';
+import cookie_parser from 'cookie-parser'
 import uploadRoute from './src/routes/upload.route.js';
 import userRoute from './src/routes/user.route.js';
+import projetRoute from './src/routes/projet.route.js'
 
 dotenv.config();
 
@@ -18,9 +20,11 @@ const io = new Server(server)
 
 app.use(cors());
 app.use(express.json());
+app.use(cookie_parser());
 
 app.use('/backend/upload', uploadRoute);
 app.use('/backend/auth', userRoute);
+app.use('/backend/projet', projetRoute);
 
 app.use('/images' , express.static('upload/images'))
 

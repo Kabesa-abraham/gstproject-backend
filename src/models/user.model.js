@@ -15,6 +15,7 @@ const PuserSchema = mongoose.Schema({
      },
     image:{
         type:String,
+        default:"http://localhost:4000/images/image_1738492415827.png"
      }
 
 },{timestamps: true}

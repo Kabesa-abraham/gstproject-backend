@@ -9,11 +9,12 @@ const PprojectSchema = mongoose.Schema({
         type:String,
     },
     createur:{
-        type:String,
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Puser",
         required:true
     },
     membres:{
-        type:Array
+        type:[{type:mongoose.Schema.Types.ObjectId , ref:"Puser"}]
     }
 },{timestamps:true}
 )

@@ -82,3 +82,27 @@ export const signinUser = async(req,res,next) =>{
         next(error)
     }
 }
+
+export const getAllUsers = async (req,res,next) =>{
+    //Donc on va utilisé le systeme de requêtes pour pouvoir prendre les infos que vous voulons 
+    try {
+        const startIndex = parseInt(req.query.startIndex) || 0;
+        const limit = parseInt(req.query.limit) || 8;
+        const sortDirection = req.query.order === 'asc' ? 1 : -1;
+
+        const users = await Puser.find({ //on peut trouver des users à partir des diffentes moyens grâce aux requêtes
+            ...(req.query.userId && {_id: req.query.userId}),
+            ...(req.query.searchTerm && {  //ici la personne peut chercher un user grâce à seulement à des mots(phrases) contenu dans les postes
+                $or: [
+                    {name : {$regex: req.query.searchTerm, $options: 'i' }},
+                    {email: {$regex: req.query.searchTerm, $options:'i' }},
+                ],
+            }),
+        }).sort({ updatedAt: sortDirection }).skip(startIndex).limit(limit) //le sort représente l'ordre dans la quel on veut avoir le info
+
+        res.status(200).json(users)
+         
+    } catch (error) {
+        next(error);
+    }
+}
