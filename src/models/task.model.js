@@ -10,20 +10,23 @@ const PtaskSchema = mongoose.Schema({
     },
     status:{
         type:String,
-        required:true,
-        default:'En cours'
+        enum: ["A faire" , "En cours", "Terminé"],
+        default:'A faire'
+    },
+    assigneA:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Puser",
+        required:true
+    },
+    projectId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Pproject",
+        required:true
     },
     deadLine:{
         type:Date,
+        default:new Date().getDate()
     },
-    project:{
-        type:String,
-        required:true
-    },
-    assigneA:{
-        type:String,
-        required:true
-    }
 },{timestamps:true}
 )
 

@@ -1,5 +1,6 @@
 import { Pproject } from "../models/project.model.js"
 import { Puser } from '../models/user.model.js'
+import {Ptask} from '../models/task.model.js'
 import { errorHandler } from "../utils/error.js"
 
 export const addProject = async(req,res,next) =>{
@@ -73,14 +74,14 @@ export const getTheProduct = async(req,res,next) =>{
 }
 
 export const fetchAndGetProject = async(req,res,next)=>{
-        const createurId = req.user.id
+        const createurId = req.user.id;
     try {
         const startIndex = parseInt(req.query.startIndex) || 0;
         const limit = parseInt(req.query.limit) || 10; 
         const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
-        const project = await Pproject.find({ 
-                createur:createurId,  //j'ai mis ça pour n'avoir que les project de ce user
+        const project = await Pproject.find({ //projets que j'ai créé
+                createur:createurId ,  //j'ai mis ça pour n'avoir que les project de ce user
             ...(req.query.projectId && {_id: req.query.projectId}),
             ...(req.query.searchTerm && {
                 $or: [
@@ -90,22 +91,34 @@ export const fetchAndGetProject = async(req,res,next)=>{
             }),
         }).sort({ updatedAt: sortDirection }).skip(startIndex).limit(limit).populate("createur membres", "name");
 
-        const totalProjects = await Pproject.estimatedDocumentCount();
+        const projectParticipated = await Pproject.find({ //projets dans le quel je participe
+                membres:createurId ,
+            ...(req.query.projectId && {_id: req.query.projectId}),
+            ...(req.query.searchTerm && {
+                $or: [
+                    {projectName : { $regex: req.query.searchTerm, $options: 'i' }}, //$options: 'i' on a mis ça pour ignorer la casse
+                    {projectDescription: {$regex: req.query.searchTerm, $options:'i' }},
+                ],
+            }),
+        }).populate("createur membres", "name");
 
-        const now = new Date();
-        const oneMonthAgo = new Date(
-            now.getFullYear(),
-            now.getMonth() -1,
-            now.getDate(), 
-        );
-        const lastMonthProjects = await Pproject.countDocuments({ //pour prendre le nombre de postes mais seulement du mois dernière
-            createdAt: {$gte: oneMonthAgo}
-        });
+        // const totalProjects = await Pproject.estimatedDocumentCount();
+
+        // const now = new Date();
+        // const oneMonthAgo = new Date(
+        //     now.getFullYear(),
+        //     now.getMonth() -1,
+        //     now.getDate(), 
+        // );
+        // const lastMonthProjects = await Pproject.countDocuments({ //pour prendre le nombre de postes mais seulement du mois dernière
+        //     createdAt: {$gte: oneMonthAgo}
+        // });
 
         res.status(200).json({ //et on renvoie tout ces données
             project,
-            totalProjects,
-            lastMonthProjects
+            projectParticipated
+            // totalProjects,
+            // lastMonthProjects
         })
          
     } catch (error) {
@@ -126,6 +139,22 @@ export const updateProject = async(req,res,next) =>{
                                   {new: true}
         )
         res.status(200).json("Projet mis à jour avec succée")
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const deleteTheProject = async(req,res,next) =>{
+    const projectId = req.params.projectId
+    try {
+        const deleteTaskes = await Ptask.deleteMany({projectId:projectId})
+        
+        if(deleteTaskes){
+            const deleteTheProject = await Pproject.findByIdAndDelete(projectId);
+            if(deleteTheProject){
+                res.status(200).json("Le Projet est supprimé avec succée!")
+            }
+        }
     } catch (error) {
         next(error)
     }

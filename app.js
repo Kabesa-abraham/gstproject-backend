@@ -7,7 +7,8 @@ import cors from 'cors';
 import cookie_parser from 'cookie-parser'
 import uploadRoute from './src/routes/upload.route.js';
 import userRoute from './src/routes/user.route.js';
-import projetRoute from './src/routes/projet.route.js'
+import projetRoute from './src/routes/projet.route.js';
+import taskRoute from './src/routes/task.route.js'
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(cookie_parser());
 app.use('/backend/upload', uploadRoute);
 app.use('/backend/auth', userRoute);
 app.use('/backend/projet', projetRoute);
+app.use('/backend/task', taskRoute);
 
 app.use('/images' , express.static('upload/images'))
 
