@@ -1,25 +1,20 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import http from 'http'; //nécessaire pour socket.io
-import {Server} from 'socket.io';
 import cors from 'cors';
 import cookie_parser from 'cookie-parser'
 import uploadRoute from './src/routes/upload.route.js';
 import userRoute from './src/routes/user.route.js';
 import projetRoute from './src/routes/projet.route.js';
-import taskRoute from './src/routes/task.route.js'
+import taskRoute from './src/routes/task.route.js';
 
 dotenv.config();
 
 mongoose.connect(process.env.MONGO_URL).then(() => {console.log('MongoDB connected')})
                                        .catch((err) => console.log(err));
 
-const app = express();
-const server = http.createServer(app); //créer un serveur http
-const io = new Server(server)
-
-app.use(cors());
+const app = express()
+app.use(cors({origin:"http://localhost:5173",credentials:true}));
 app.use(express.json());
 app.use(cookie_parser());
 
@@ -28,10 +23,10 @@ app.use('/backend/auth', userRoute);
 app.use('/backend/projet', projetRoute);
 app.use('/backend/task', taskRoute);
 
-app.use('/images' , express.static('upload/images'))
+const PORT = process.env.PORT;
 
-server.listen(4000, ()=>{
-    console.log("Serveur Websocket et API en cours d'éxecution on port 4000")
+app.listen(PORT, ()=>{
+    console.log(`Serveur en cours d'éxecution on port ${PORT}`)
 })
 
 app.use((err,req,res,next) => {  //ceci est un middleware qui va me permettre des faire la gestion des erreurs dans mes codes

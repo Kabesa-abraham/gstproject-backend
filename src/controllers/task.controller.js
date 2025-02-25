@@ -38,7 +38,7 @@ try {
     const limit = parseInt(req.query.limit) || 10; 
     const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
-    const task = await Ptask.find({                             // je doit modifier la partie de postPage car ce là où j'avais fetch pour prendre les taskes d'un projet 
+    const task = await Ptask.find({
             assigneA:createurId,  //j'ai mis ça pour n'avoir que les taskes de ce user
         ...(req.query.status && {status: req.query.status}),
         ...(req.query.projectId && {projectId: req.query.projectId}),
@@ -130,9 +130,86 @@ export const fetchTaskforProjectsMember = async(req,res,next) =>{
         if(projects.length > 0){
             const projectIds = projects.map(thoseProjects => thoseProjects._id) //je prends les ids de ces projects 
             
-            const taskesAssigned = await Ptask.find({projectId: {$in:projectIds}});
-            return res.status(200).json( taskesAssigned )
+            const taskesAssigned = await Ptask.find({projectId: {$in:projectIds}}); //je prends tout les tâches de ces Projets
+
+            const totalTasks = await Ptask.countDocuments({projectId: {$in: projectIds}}) //je prends les totals des tâches de ces Projets
+            const tasksByStatus = await Ptask.aggregate([ 
+                {$match: { projectId : {$in:projectIds} } },
+                {$group: {_id: "$status" , count: {$sum: 1} } }
+             ])
+            
+            const taskStats = {
+                total: totalTasks,
+                aFaire: 0,
+                EnCours: 0,
+                Termine: 0
+            }
+            tasksByStatus.forEach(task =>{
+                if(task._id === 'A faire'){ taskStats.aFaire = task.count; }
+                if(task._id === 'En cours'){ taskStats.EnCours = task.count; }
+                if(task._id === 'Terminé'){ taskStats.Termine = task.count; }
+            })
+
+            //prendre les tâches dont l'échéance est dans les 7 jours
+            const today = new Date(); const nextWeek = new Date(); nextWeek.setDate(today.getDate() + 7);
+            const tasksInLimit = await Ptask.find({projectId: {$in:projectIds},deadLine:{$lte:nextWeek}}).sort({deadLine:1})  //prendre les tâches dont le deadLine est <= 7 jours (qui arrivent bientôt à l'échéance ou en ratard)
+
+            return res.status(200).json( {taskesAssigned,taskStats,tasksInLimit} )
         }
+        
         return res.status(200).json([]) //si aucun projets n'a été trouvé
     }catch(error){ next(error) }
+}
+
+export const getTaskStates = async(req,res,next) =>{
+    const userId = req.user.id;
+    try {
+        const projects = await Pproject.find({membres:userId});
+        if(projects.length === 0) {
+            return res.status(200).json({totalTasks:0, tasksByStatus:{}, tasksByMonth:[],completedTasksByProject:[]});
+        }
+        const projectIds = projects.map(projets => projets._id); //je prends les ids des projets que j'ai trouvé
+
+        const tasksByStatus = await Ptask.aggregate([ //pour compter les tâches par status
+            {$match: { projectId : {$in:projectIds} } },
+            {$group: {_id: "$status" , count: {$sum: 1} } }
+         ])
+
+         //reformatter les données
+         const taskStatusCount = {
+            "A faire": 0,
+            "En cours": 0,
+            "Terminé": 0
+        };
+        tasksByStatus.forEach(task =>{
+            taskStatusCount[task._id] = task.count;
+        });
+
+        //compter les tâches créées par mois
+        const tasksByMonth = await Ptask.aggregate([ {$match: {projectId: {$in:projectIds}}},
+            {$group: {_id: {$month: "$createdAt"}, count: {$sum:1}}}
+         ]);
+
+
+        //Compter les tâches terminé par projets
+        const completedTasksByProject = await Ptask.aggregate([ {$match: {projectId: {$in:projectIds}, status:"Terminé" }},
+            {$group: {_id:"$projectId", count:{$sum:1}}}
+         ]).exec();
+        const projectName = await Pproject.find({_id: {$in: completedTasksByProject.map((p)=> p._id ) }}).select("_id projectName");
+        const taskWithNames = completedTasksByProject.map(task => {
+            const project = projectName.find(p => p._id.equals(task._id)) //on regard si l'_id du "projectName" et égal à celle qu'on trouve dans "completedTasksByProject"
+            return {projectName : project? project.projectName : "Projet inconnue", count: task.count } //et je retourne ça
+        })
+
+
+         res.status(200).json({
+            totalTasks: taskStatusCount["A faire"] + taskStatusCount["En cours"] + taskStatusCount["Terminé"] /*total des tâches*/ ,
+            tasksByStatus:taskStatusCount, //total tâches par status
+            tasksByMonth,   
+            completedTasksByProject: taskWithNames
+         });
+
+    } catch (error) {
+        next(error)
+    }
 }

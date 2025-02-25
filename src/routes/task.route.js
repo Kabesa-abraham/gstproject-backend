@@ -1,7 +1,7 @@
 import express from 'express';
 import {verifyToken} from '../utils/authVerify.js'
 import { createTask,fetchTaskAndGet, fetchTaskesForProject, fetchTheTask,updateTheTask,deleteTask,
-         fetchTaskforProjectsMember,fetchTaskesForProjectWithoutLimit
+         fetchTaskforProjectsMember,fetchTaskesForProjectWithoutLimit,getTaskStates
        } from '../controllers/task.controller.js';
 
 const router = express.Router();
@@ -16,5 +16,7 @@ router.get('/fetchTaskforProjectsMember', verifyToken, fetchTaskforProjectsMembe
 
 router.put('/updateTask/:taskId' , verifyToken , updateTheTask)
 router.delete('/deleteTask/:taskId', verifyToken, deleteTask);
+
+router.get('/tasksStats', verifyToken , getTaskStates)
 
 export default router;

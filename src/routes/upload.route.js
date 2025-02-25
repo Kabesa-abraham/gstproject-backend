@@ -2,25 +2,22 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import cors from 'cors'
+import cloudinary from '../utils/cloudinaryConfig.js';
 
 const router = express.Router();
 router.use(cors());
 
-const Storage = multer.diskStorage({
-    destination: './upload/images',
-    filename: (req,file,cb) =>{
-        return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
-    }
-})
-
+const Storage = multer.diskStorage({});
 const upload = multer({storage:Storage})
 
-router.post('/upload_image', upload.single('image') , (req,res)=>{
-    res.json({
-        success:1,
-        image_url:`http://localhost:${4000}/images/${req.file.filename}`
-    })
-})
+router.post('/upload_image', upload.single('image') , async(req,res,next)=>{
+    try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder:"uploads"
+        })
+        res.status(200).json({image_url:result.secure_url});
+    } catch (error) { next(error) }}
+);
 
 export default router;
 

@@ -39,7 +39,7 @@ export const signupUser = async(req,res,next) =>{
             const {password , ...rest} = userSaved._doc;
         
             res.status(200).cookie('user_access_token', token, { //je renvoi le token sous forme de cookie
-            httpOnly:false,
+            httpOnly:true,
             maxAge: 7*24*60*60*1000 //7jours
             }).json(rest)   
         }
@@ -68,7 +68,7 @@ export const signinUser = async(req,res,next) =>{
                 const {password, ...rest} = checkUser._doc;
     
                 res.status(200).cookie('user_access_token' , token, {
-                    httpOnly:false,
+                    httpOnly:true,
                     maxAge: 7*24*60*60*1000 //7jours
                 }).json(rest);
     
@@ -105,4 +105,75 @@ export const getAllUsers = async (req,res,next) =>{
     } catch (error) {
         next(error);
     }
+}
+
+export const updateUser = async(req, res, next) =>{ //la fonction pour mettre à jour le user
+    const {name,email,password,image} = req.body;
+    let hashedPassword;
+
+   if(req.user.id !== req.params.userId){
+    return next(errorHandler(401, "Vous n'êtes pas autorisé à mettre à jour cet utilisateur!"))
+   }
+
+   if(password){ //vérification du password
+    if(password.length < 6){
+      return next(errorHandler(400, 'Le mot de passe doit avoir plus de 6 caractères'))
+    }
+     hashedPassword = bcryptjs.hashSync(password , 10); //je crypte le mot de passe
+   }
+
+   if(name){ //vérification du name
+    if(name.length > 25){
+        return next(errorHandler(400 , "le Nom d'utilisateur ne doit pas avoir plus de 25 carectères"));
+    }
+    if(name.includes(' ')){
+        return next(errorHandler(400 , "le Nom d'utilisateur ne doit pas contenir des espaces"))
+    }
+    if(name !== name.toLowerCase()){
+        return next(errorHandler(400 , "le Nom d'utilisateur ne doit pas contenir des caractères en majuscule"))
+    }
+    if(!name.match(/^[a-zA-Z0-9]+$/)){
+        return next(errorHandler(400, "le Nom d'utilisateur doit seulement contenir des lettres et nombres"))
+    }
+   }
+
+   try {
+    await Puser.findByIdAndUpdate(req.params.userId , {
+        $set:{
+            name: name,
+            email: email,
+            password: hashedPassword,
+            image: image,
+        }},
+        {new : true}
+    );
+
+    //Rechercher le user
+    const userSaved = await Puser.findOne({_id:req.params.userId});
+    if(userSaved){
+        const {password , ...rest} = userSaved._doc;
+        res.status(200).json(rest)
+    }
+   } catch (error) { next(error)}   
+} 
+
+export const deleteUser = async(req,res,next) =>{ //fonction pour supprimer un user
+    if(req.user.id !== req.params.userId){
+        return next(errorHandler(403, "Vous n'êtes pas permis à supprimer ce compte"))
+    }
+
+    try {
+        await Puser.findByIdAndDelete(req.params.userId);
+        res.status(200).clearCookie('user_access_token',{
+            httpOnly: true
+        }).json('Utilisateur a été supprimer avec succée');
+    } catch (error) { next(error) }
+}
+
+export const signOut = async(req,res,next) =>{ //pour la déconnection du user
+    try {
+        res.clearCookie('user_access_token',{
+            httpOnly: true
+        }).status(200).json("L'utilisateur est déconnecté")
+    } catch (error) { next(error) }
 }

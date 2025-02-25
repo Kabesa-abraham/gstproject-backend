@@ -59,11 +59,24 @@ export const addMember = async(req,res,next) =>{
         next(error)
     }
 }
+export const deleteMember = async(req,res,next) =>{ //pour supprimer un membre dans un projet
+    const projectId = req.params.projectId; //id du project
+    const memberId = req.params.memberId;
+
+    try {
+        const updateProject = await Pproject.findByIdAndUpdate(projectId,{
+                                    $pull:{membres: memberId}
+                            },{new: true})
+        if(updateProject){
+            res.status(200).json("Le member est supprimé avec succée!")
+        }
+    }catch(err){next(err)}
+}
 
 export const getTheProduct = async(req,res,next) =>{
     const projectId = req.params.projectId;
     try {
-        const theProject = await Pproject.findById({_id:projectId}).populate("createur membres", "name image");
+        const theProject = await Pproject.findById({_id:projectId}).populate("createur membres", "_id name image");
         if(!theProject){
             return next(errorHandler(404, "Projet non trouvé"))
         }
@@ -102,23 +115,14 @@ export const fetchAndGetProject = async(req,res,next)=>{
             }),
         }).populate("createur membres", "name");
 
-        // const totalProjects = await Pproject.estimatedDocumentCount();
-
-        // const now = new Date();
-        // const oneMonthAgo = new Date(
-        //     now.getFullYear(),
-        //     now.getMonth() -1,
-        //     now.getDate(), 
-        // );
-        // const lastMonthProjects = await Pproject.countDocuments({ //pour prendre le nombre de postes mais seulement du mois dernière
-        //     createdAt: {$gte: oneMonthAgo}
-        // });
+        const totalProjectsCreated = await Pproject.countDocuments({createur:createurId}); //total des projets que j'ai créé
+        const totalProjectMembered = await Pproject.countDocuments({membres:createurId}); //total projects dont je suis membre
 
         res.status(200).json({ //et on renvoie tout ces données
             project,
-            projectParticipated
-            // totalProjects,
-            // lastMonthProjects
+            projectParticipated,
+            totalProjectsCreated,
+            totalProjectMembered
         })
          
     } catch (error) {
@@ -155,6 +159,27 @@ export const deleteTheProject = async(req,res,next) =>{
                 res.status(200).json("Le Projet est supprimé avec succée!")
             }
         }
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+export const getAllUsersOfProjectsMember = async(req,res,next) =>{ //pour prendre tout les users des projets où je suis membre
+    const userId = req.user.id;
+    try {
+        const projects = await Pproject.find({membres:userId}).populate("membres", "_id name email image") //Je prend les projets où je suis membre
+        if(!projects || projects.length === 0){ res.status(200).json([]) } //si il n'ya pas ces projets
+
+        let memberMap = new Map();
+        projects.forEach((projet) => {
+            projet.membres.forEach((member) =>{
+               memberMap.set(member._id.toString(), member)
+            })
+        });
+        const uniqueMembers = Array.from(memberMap.values()).filter(membre => membre._id.toString() !== userId)
+
+        res.status(200).json(uniqueMembers) //je renvoie les membres unique
     } catch (error) {
         next(error)
     }
