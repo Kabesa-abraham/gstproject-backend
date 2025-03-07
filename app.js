@@ -14,8 +14,7 @@ mongoose.connect(process.env.MONGO_URL).then(() => {console.log('MongoDB connect
                                        .catch((err) => console.log(err));
 
 const app = express()
-app.use(cors({origin:process.env.FRONTEND_URL,credentials:true}));
-app.use(express.json());
+app.use(cors({origin:["http://localhost:5173",process.env.FRONTEND_URL],credentials:true}));
 app.use(cookie_parser());
 
 app.use('/backend/upload', uploadRoute);
