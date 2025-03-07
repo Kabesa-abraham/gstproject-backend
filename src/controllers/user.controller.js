@@ -40,7 +40,9 @@ export const signupUser = async(req,res,next) =>{
         
             res.status(200).cookie('user_access_token', token, { //je renvoi le token sous forme de cookie
             httpOnly:true,
-            maxAge: 7*24*60*60*1000 //7jours
+            maxAge: 7*24*60*60*1000, //7jours
+            secure: process.env.NODE_ENV === 'production', // Si en production, utiliser HTTPS
+            sameSite: 'None', // Autoriser les cookies dans les requêtes cross-origin
             }).json(rest)   
         }
     } catch (error) {
@@ -69,7 +71,9 @@ export const signinUser = async(req,res,next) =>{
     
                 res.status(200).cookie('user_access_token' , token, {
                     httpOnly:true,
-                    maxAge: 7*24*60*60*1000 //7jours
+                    maxAge: 7*24*60*60*1000, //7jours
+                    secure: process.env.NODE_ENV === 'production', // Si en production, utiliser HTTPS
+                    sameSite: 'None', // Autoriser les cookies dans les requêtes cross-origin
                 }).json(rest);
     
             }else{
@@ -165,7 +169,9 @@ export const deleteUser = async(req,res,next) =>{ //fonction pour supprimer un u
     try {
         await Puser.findByIdAndDelete(req.params.userId);
         res.status(200).clearCookie('user_access_token',{
-            httpOnly: true
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Si en production, utiliser HTTPS
+            sameSite: 'None', // Autoriser les cookies dans les requêtes cross-origin
         }).json('Utilisateur a été supprimer avec succée');
     } catch (error) { next(error) }
 }
@@ -173,7 +179,9 @@ export const deleteUser = async(req,res,next) =>{ //fonction pour supprimer un u
 export const signOut = async(req,res,next) =>{ //pour la déconnection du user
     try {
         res.clearCookie('user_access_token',{
-            httpOnly: true
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Si en production, utiliser HTTPS
+            sameSite: 'None', // Autoriser les cookies dans les requêtes cross-origin
         }).status(200).json("L'utilisateur est déconnecté")
     } catch (error) { next(error) }
 }
