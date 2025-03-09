@@ -14,7 +14,15 @@ mongoose.connect(process.env.MONGO_URL).then(() => {console.log('MongoDB connect
                                        .catch((err) => console.log(err));
 
 const app = express()
-app.use(cors({origin:["http://localhost:5173",process.env.FRONTEND_URL],credentials:true}));
+app.use(
+    cors({
+      origin: ["http://localhost:5173", "https://oragon.vercel.app"],
+      credentials: true, // Permet d'envoyer les cookies si nécessaire
+      methods: ["GET", "POST", "PUT", "DELETE"], // Autorise ces méthodes HTTP
+      allowedHeaders: ["Content-Type", "Authorization","Accept"], // Autorise ces headers
+    })
+  );
+
 app.use(cookie_parser());
 
 app.use('/backend/upload', uploadRoute);
