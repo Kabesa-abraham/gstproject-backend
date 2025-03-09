@@ -30,12 +30,6 @@ app.use('/backend/auth', userRoute);
 app.use('/backend/projet', projetRoute);
 app.use('/backend/task', taskRoute);
 
-const PORT = process.env.PORT;
-
-app.listen(PORT, ()=>{
-    console.log(`Serveur en cours d'éxecution on port ${PORT}`)
-})
-
 app.use((err,req,res,next) => {  //ceci est un middleware qui va me permettre des faire la gestion des erreurs dans mes codes
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error'
@@ -44,4 +38,10 @@ app.use((err,req,res,next) => {  //ceci est un middleware qui va me permettre de
         statusCode,
         message
     })
+})
+
+const PORT = process.env.PORT;
+
+app.listen(PORT, ()=>{
+    console.log(`Serveur en cours d'éxecution on port ${PORT}`)
 })
