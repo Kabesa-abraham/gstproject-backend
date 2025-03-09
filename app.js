@@ -24,7 +24,7 @@ app.use(
   );
 
 app.use(cookie_parser());
-
+app.use(express.json());
 app.use('/backend/upload', uploadRoute);
 app.use('/backend/auth', userRoute);
 app.use('/backend/projet', projetRoute);
